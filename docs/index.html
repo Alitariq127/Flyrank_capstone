@@ -119,15 +119,14 @@
     <h1>Which pages should a content team review this sprint, and why?</h1>
     <div class="abstract">
       <strong>Abstract.</strong> We ask which pages in a search-visibility warehouse are worth
-      a content team's attention this sprint. Using a strict time-split (12-week feature
-      window, held-out future label window, and a fully separate final test window), we
-      label pages as growing, declining, or stable based on click trend, engineer safe
-      on-page and behavioral features, and compare a gradient-boosted classifier against a
-      simple trend-slope baseline. The model reaches <strong>53.6% held-out accuracy</strong> versus
-      an estimated <strong>36.8% baseline</strong> on the validation split, driven mostly by better
-      identification of stable pages. We convert predictions into a ranked, reason-coded
-      action list — <strong>101 pages flagged</strong> for review out of 500 — rather than a bare
-      classification score.
+      a content team's attention this sprint. Using a time-split validation design (a feature
+      window and a strictly later, held-out label window), we label pages as growing, declining,
+      or stable based on click trend, engineer safe on-page and behavioral features, and compare
+      a gradient-boosted classifier against a simple trend-slope baseline. On real FlyRank
+      warehouse data, the model reaches <strong>80% held-out test accuracy</strong> versus a
+      <strong>68.8% baseline</strong> that collapses to always predicting "stable." We convert
+      predictions into a ranked, reason-coded action list — <strong>62,805 of 146,034 pages
+      flagged</strong> for review — rather than a bare classification score.
     </div>
   </header>
 
@@ -137,7 +136,7 @@
       A content or SEO team can't manually review every page every sprint. The practical
       decision this work supports is: <em>given limited review capacity, which pages should
       be looked at first, and what should the review actually check for?</em> A page flagged
-      "declining, still ranks in the top 10, hasn't been refreshed in 2+ years" is a different
+      "declining, still ranks near the top, hasn't been refreshed in 2+ years" is a different
       priority — and a different task — than one flagged "declining, ranks poorly, thin
       content." The goal here is a ranked action list a team could plausibly work from, not
       just a label.
@@ -147,25 +146,23 @@
   <section>
     <h2>Data</h2>
     <p>
-      This paper works against the FlyRank ML Internship search-visibility warehouse schema —
-      one row per page per week, with clicks, impressions, click-through rate, average
-      ranking position, word count, content category, and days since publish. No client
-      names, domains, raw URLs, or private query strings are used or shown anywhere in this
-      analysis; all page identifiers here are anonymized indices.
+      This analysis runs on the real FlyRank ML Internship search-visibility warehouse:
+      <code>fact_content_daily_performance</code> (daily GSC clicks, impressions, and average
+      position per page) joined to <code>dim_content</code> (word count, content creation date)
+      on client + content identifiers. No client names, domains, raw URLs, private query
+      strings, or Google-algorithm causal claims appear anywhere in this analysis — all page
+      identifiers are the warehouse's own anonymized hashes.
     </p>
     <div class="callout">
-      <strong>Note on this version of the analysis:</strong> the pipeline below is built and
-      validated end-to-end against synthetic data generated to match the warehouse schema,
-      as a demonstration of the full method. The single swap-in point to run this on the real
-      warehouse is documented in the repo's <code>_lib.py</code> — replacing one data-loading
-      function with a DuckDB query over the real <code>hf://</code> release. No other part of
-      the pipeline changes.
+      <strong>Important scope note:</strong> this run used the warehouse's smaller sample table
+      (<code>fact_content_daily_performance_sample.parquet</code>), which covered only 5 days of
+      history. That forced a compressed window design — a single-week feature window, a
+      2-week label window, and a 2-week held-out test window — instead of the originally
+      planned 12/4/4-week split. This is flagged explicitly in Limitations below: it's the
+      single biggest caveat on these results, and re-running against the full
+      <code>fact_content_daily_performance/</code> table (78.8M rows, spanning much more
+      history) with the full 12/4/4-week design is the natural next step.
     </div>
-    <p>
-      Windows used: weeks 0–11 for features, weeks 12–15 as a held-out label window (used only
-      to compute training/validation labels — never touched for features), and weeks 16–19 as
-      a fully separate final test window, untouched until the last evaluation step.
-    </p>
   </section>
 
   <section>
@@ -175,93 +172,109 @@
       Primary metric: <strong>clicks</strong>. Within the label window, we compare the early
       half against the late half; a page is <code>growing</code> if late-window clicks exceed
       early-window clicks by 15% or more, <code>declining</code> if the reverse, and
-      <code>stable</code> otherwise. The 15% threshold (rather than 0%) is a deliberate choice
-      to avoid mistaking week-to-week noise for a real trend.
+      <code>stable</code> otherwise. Label balance on this data: 71.5% stable, 15.7% declining,
+      12.8% growing.
     </p>
     <h3>Features</h3>
     <p>
-      All computed strictly from the feature window: average clicks, impressions, CTR, and
-      position; click volatility (std. dev.); a within-window trend slope; word count;
-      content category (one-hot); and days since publish.
+      Computed from the feature window: average clicks, impressions, CTR, and position; click
+      volatility; a within-window trend slope; word count; and days since content creation.
+      With only a single-week feature window in this run, the trend slope feature carries
+      almost no signal (there's no "early half vs. late half" within one week) — see
+      Limitations.
     </p>
     <h3>Baseline and model</h3>
     <p>
-      Baseline: a simple rule — declining if trend slope is meaningfully negative, growing if
-      meaningfully positive, stable otherwise. No learning involved. Model: a gradient-boosted
-      tree classifier (scikit-learn <code>GradientBoostingClassifier</code>), trained on the
-      same features, evaluated on the same split.
+      Baseline: a rule using trend slope alone. Model: a gradient-boosted tree classifier
+      (scikit-learn <code>GradientBoostingClassifier</code>), same features, same split.
     </p>
     <h3>Validation design</h3>
     <p>
-      Split is <strong>group-aware</strong> (by page — no page appears in both train and
-      validation) and the label/feature windows are already time-separated, so no page's
-      future leaks into its own features. A leakage assertion runs at the top of the pipeline,
-      checking the three windows (feature / label / test) are pairwise disjoint before any
-      modeling begins.
+      Split is group-aware (by page) and the label/feature windows are time-separated by
+      construction, so no page's future leaks into its own features. A leakage assertion
+      confirmed the three windows (feature: week 0; label: weeks 1–2; test: weeks 3–4) are
+      pairwise disjoint before modeling began.
     </p>
   </section>
 
   <section>
     <h2>Results</h2>
     <div class="metric-row">
-      <div class="metric-card"><div class="num">53.6%</div><div class="label">Model — held-out test accuracy</div></div>
-      <div class="metric-card"><div class="num">54.4%</div><div class="label">Model — validation accuracy</div></div>
-      <div class="metric-card"><div class="num">36.8%</div><div class="label">Baseline — validation accuracy</div></div>
-      <div class="metric-card"><div class="num">101 / 500</div><div class="label">Pages flagged for review</div></div>
+      <div class="metric-card"><div class="num">80.0%</div><div class="label">Model — held-out test accuracy</div></div>
+      <div class="metric-card"><div class="num">72.4%</div><div class="label">Model — validation accuracy</div></div>
+      <div class="metric-card"><div class="num">68.8%</div><div class="label">Baseline — validation accuracy</div></div>
+      <div class="metric-card"><div class="num">62,805 / 146,034</div><div class="label">Pages flagged for review</div></div>
     </div>
 
-    <p>Per-class performance on the held-out test window (500 pages):</p>
+    <p>
+      The baseline's 68.8% is misleadingly high — it comes entirely from predicting "stable"
+      for everything (0% precision/recall on declining and growing), since trend slope is
+      uninformative over a single-week feature window. The model still beats it meaningfully
+      on accuracy and, more importantly, actually identifies some declining pages (46% F1)
+      that the baseline misses entirely.
+    </p>
+
+    <p>Per-class performance, held-out test window (146,034 pages):</p>
     <table>
       <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr>
-      <tr><td>declining</td><td>0.39</td><td>0.29</td><td>0.33</td><td>107</td></tr>
-      <tr><td>growing</td><td>0.23</td><td>0.17</td><td>0.19</td><td>89</td></tr>
-      <tr><td>stable</td><td>0.63</td><td>0.73</td><td>0.67</td><td>304</td></tr>
+      <tr><td>declining</td><td>0.67</td><td>0.55</td><td>0.60</td><td>35,391</td></tr>
+      <tr><td>growing</td><td>0.08</td><td>0.01</td><td>0.01</td><td>5,885</td></tr>
+      <tr><td>stable</td><td>0.84</td><td>0.93</td><td>0.88</td><td>104,758</td></tr>
     </table>
 
     <figure>
       <img src="assets/confusion_matrix.png" alt="Confusion matrix of model predictions on validation set">
-      <figcaption>Fig. 1 — Model confusion matrix, validation split. Most of the model's edge over baseline comes from cleaner separation of stable pages; growing/declining recall is still weak.</figcaption>
+      <figcaption>Fig. 1 — Model confusion matrix, validation split (real data). Declining pages are identified reasonably well; growing pages are almost never recognized, likely a direct consequence of the compressed 2-week label window.</figcaption>
     </figure>
 
     <figure>
       <img src="assets/feature_importance.png" alt="Top 10 feature importances from the gradient boosted model">
-      <figcaption>Fig. 2 — Feature importances. Trend slope and average CTR dominate, which is expected given they're the features most directly tied to the label definition.</figcaption>
+      <figcaption>Fig. 2 — Feature importances. <code>avg_impressions</code> dominates by a wide margin; <code>trend_slope</code> and <code>std_clicks</code> carry essentially zero importance — the direct fingerprint of a one-week feature window with no internal trend to measure.</figcaption>
     </figure>
 
     <figure>
       <img src="assets/summary_charts.png" alt="Predicted label distribution and recommended action counts">
-      <figcaption>Fig. 3 — Left: predicted label distribution on the test set. Right: recommended actions among flagged pages.</figcaption>
+      <figcaption>Fig. 3 — Left: predicted label distribution on the test set (growing is barely visible — see Limitations). Right: recommended actions among flagged pages.</figcaption>
     </figure>
   </section>
 
   <section>
     <h2>Limitations & honest framing</h2>
     <ul>
-      <li><strong>Synthetic data.</strong> All numbers above are on synthetic data built to match the real schema, not the live FlyRank warehouse — treat these as a validated method, not validated findings, until re-run on real data.</li>
-      <li><strong>Directional, not causal.</strong> A "declining" label describes an observed click pattern in the label window, not a diagnosis of why — the reason codes point at correlated signals (position, CTR, content age), not confirmed causes.</li>
-      <li><strong>Growing/declining recall is weak (17–29%).</strong> The model is meaningfully better than baseline mostly by getting "stable" right more often; it's a decision-support signal for prioritizing review, not a high-confidence classifier for the minority classes that matter most.</li>
-      <li><strong>"Recovering" label not yet wired into this pass.</strong> The design calls for a "recovering" state (declining last period, growing now), which requires comparing two consecutive label windows. The current pipeline computes a single label window; recovering detection is defined in code (<code>_lib.mark_recovering</code>) but not yet exercised end-to-end — flagged here rather than silently dropped.</li>
-      <li><strong>15% threshold is a judgment call</strong>, not derived from the data's noise floor — worth revisiting once real variance is observed.</li>
+      <li><strong>Compressed windows, the central caveat.</strong> The sample table only covered 5 days, forcing a 1-week feature / 2-week label / 2-week test design instead of the intended 12/4/4 weeks. This is very likely why trend-based features carry no signal and why baseline collapses entirely to "stable." Re-running on the full <code>fact_content_daily_performance/</code> table with proper multi-week windows is the clear next step before trusting these numbers as representative.</li>
+      <li><strong>Growing-page recall is near zero</strong> (1% recall, 8% precision) in both validation and test. With a 2-week label window, "growing" is likely dominated by noise rather than real momentum — consistent with the compressed-window explanation above.</li>
+      <li><strong>Directional, not causal.</strong> A "declining" label describes an observed click pattern in the label window, not a diagnosis of why — reason codes point at correlated signals (position, CTR, content age), not confirmed causes.</li>
+      <li><strong>Growing pages are not currently surfaced in the ranked action list.</strong> The priority-scoring logic only assigns positive priority to declining, recovering, or thin-content stable pages — growing pages get a priority score of 0 and are filtered out, even though they're labeled "protect" in principle. This is a scope gap in the current scoring function, not a data issue, and is straightforward to fix in a future pass (give growing pages a modest positive priority so they appear, lower than declining pages, in the action list).</li>
+      <li><strong>A handful of <code>avg_position</code> values below 1</strong> appear in the top-ranked recommendations (e.g. 0.47, 0.63) — outside the normal 1–100+ range for Google average position. This looks like a data or aggregation artifact worth investigating before treating position-based priority ranking as fully reliable, rather than a sign the page is ranking impossibly well.</li>
+      <li><strong>"Recovering" label not yet exercised.</strong> Defined in code but requires comparing two consecutive label windows — not run end-to-end here given the short window budget in this pass.</li>
+      <li><strong>15% growth/decline threshold</strong> is a judgment call, not derived from this data's actual noise floor.</li>
     </ul>
   </section>
 
   <section>
     <h2>Ranked recommendations</h2>
-    <p>Top of the ranked action list (full 101-row table in the repo):</p>
+    <p>Top of the ranked action list, 62,805 pages flagged out of 146,034 (full table in the repo):</p>
     <table>
-      <tr><th>Page</th><th>State</th><th>Avg. position</th><th>Action</th><th>Reason</th></tr>
-      <tr><td class="mono">page_0177</td><td>declining</td><td>5.4</td><td>improve</td><td>clicks trending down; content 2+ yrs old</td></tr>
-      <tr><td class="mono">page_0333</td><td>declining</td><td>5.5</td><td>improve</td><td>clicks trending down; content 2+ yrs old</td></tr>
-      <tr><td class="mono">page_0010</td><td>declining</td><td>5.6</td><td>improve</td><td>content 2+ yrs old, candidate for refresh</td></tr>
-      <tr><td class="mono">page_0080</td><td>declining</td><td>5.8</td><td>improve</td><td>content 2+ yrs old, candidate for refresh</td></tr>
-      <tr><td class="mono">page_0282</td><td>declining</td><td>5.8</td><td>improve</td><td>clicks trending down within window</td></tr>
+      <tr><th>Page (hashed)</th><th>State</th><th>Avg. position</th><th>Action</th><th>Reason</th></tr>
+      <tr><td class="mono">client_8ddc46da..._content_d584c27d...</td><td>declining</td><td>0.47</td><td>improve</td><td>CTR below typical range for its position</td></tr>
+      <tr><td class="mono">client_73cda7b4..._content_de9e46db...</td><td>declining</td><td>0.63</td><td>improve</td><td>no strong signal — monitor</td></tr>
+      <tr><td class="mono">client_62f4a7e6..._content_674f272d...</td><td>declining</td><td>0.67</td><td>improve</td><td>CTR below typical range for its position</td></tr>
+      <tr><td class="mono">client_62f4a7e6..._content_8022d335...</td><td>declining</td><td>0.81</td><td>improve</td><td>CTR below typical range for its position</td></tr>
+      <tr><td class="mono">client_23a62021..._content_829a0bbd...</td><td>declining</td><td>0.92</td><td>improve</td><td>CTR below typical range for its position</td></tr>
     </table>
-    <p class="muted">Priority is weighted toward declining pages that still rank reasonably well — the biggest opportunity-per-effort, since ranking work is mostly already done.</p>
+    <p class="muted">Priority weights declining pages that still rank well highest — the biggest opportunity-per-effort, since ranking work is mostly already done. (Page identifiers are the warehouse's own hashed IDs, not real URLs.)</p>
   </section>
 
   <section>
     <h2>Reproducibility</h2>
-    <p>Full pipeline, in order:</p>
+    <p>
+      This run was executed end-to-end in Google Colab against the real FlyRank Hugging Face
+      warehouse (<code>fact_content_daily_performance_sample.parquet</code> joined to
+      <code>dim_content.parquet</code>), using DuckDB to query <code>hf://</code> directly.
+      The executed notebook, full ranked recommendations (62,805 rows), and all charts above
+      are in this repo.
+    </p>
+    <p>Local pipeline, in order (structurally identical to the Colab version):</p>
     <ol>
       <li><code>work/01_data_exploration.ipynb</code> — schema and sanity checks</li>
       <li><code>work/02_label_design.ipynb</code> — label definition notes</li>
@@ -271,7 +284,14 @@
       <li><code>work/06_reason_codes.ipynb</code> — reason-code generation</li>
       <li><code>work/07_capstone_notebook.ipynb</code> — full pipeline, final test evaluation, ranked recommendations</li>
     </ol>
-    <p>Shared logic (data loading, label/feature/reason-code functions) lives in <code>work/_lib.py</code>.</p>
+    <p>
+      Real-data logic lives in <code>work/_lib.py::load_search_data_REAL()</code> (DuckDB +
+      <code>hf://</code> query) and the executed Colab notebook
+      <code>flyrank_capstone_colab.ipynb</code> in this repo. Next step for higher-confidence
+      results: point the same query at the full <code>fact_content_daily_performance/</code>
+      folder (78.8M rows) instead of the sample, which unlocks the full 12/4/4-week window
+      design (see Limitations).
+    </p>
   </section>
 
   <footer>
