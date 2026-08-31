@@ -1,0 +1,51 @@
+page_id,predicted_label,avg_position,avg_ctr,word_count,action,reason_code,priority_score
+page_0177,declining,5.366666666666667,0.051625000000000004,1851,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",114.6
+page_0333,declining,5.4750000000000005,0.028883333333333334,565,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",114.5
+page_0001,declining,5.575,0.02335833333333333,1263,improve,no strong signal — monitor,114.4
+page_0010,declining,5.641666666666667,0.035758333333333336,1533,improve,"content is 2+ years old, candidate for refresh",114.4
+page_0080,declining,5.758333333333333,0.031125,1396,improve,"content is 2+ years old, candidate for refresh",114.2
+page_0253,declining,5.791666666666667,0.03220833333333333,1760,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",114.2
+page_0282,declining,5.816666666666666,0.04231666666666667,387,improve,clicks trending down within observation window,114.2
+page_0014,declining,6.041666666666667,0.031849999999999996,1213,improve,"content is 2+ years old, candidate for refresh",114.0
+page_0167,declining,5.983333333333333,0.0597,2807,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",114.0
+page_0219,declining,6.141666666666667,0.030366666666666667,2212,improve,no strong signal — monitor,113.9
+page_0419,declining,6.125,0.0109,2260,improve,CTR below typical range for its position,113.9
+page_0107,declining,6.233333333333333,0.037625,2497,improve,clicks trending down within observation window,113.8
+page_0011,declining,6.216666666666666,0.05555833333333333,1144,improve,clicks trending down within observation window,113.8
+page_0440,declining,6.2250000000000005,0.026225,908,improve,clicks trending down within observation window,113.8
+page_0135,declining,6.2749999999999995,0.03883333333333333,2283,improve,"content is 2+ years old, candidate for refresh",113.7
+page_0121,declining,6.375,0.033141666666666666,314,improve,"content is 2+ years old, candidate for refresh",113.6
+page_0389,declining,6.408333333333334,0.04568333333333333,1964,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",113.6
+page_0429,declining,6.533333333333334,0.042725000000000006,3823,improve,no strong signal — monitor,113.5
+page_0271,declining,6.641666666666667,0.03170833333333333,1695,improve,no strong signal — monitor,113.4
+page_0404,declining,6.675,0.039125,1532,improve,clicks trending down within observation window,113.3
+page_0407,declining,6.716666666666666,0.04376666666666667,896,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",113.3
+page_0230,declining,6.791666666666667,0.02725,3181,improve,"clicks trending up within observation window; content is 2+ years old, candidate for refresh",113.2
+page_0283,declining,6.7749999999999995,0.0148,3833,improve,"clicks trending down within observation window; CTR below typical range for its position; content is 2+ years old, candidate for refresh",113.2
+page_0435,declining,6.833333333333333,0.025483333333333334,905,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",113.2
+page_0112,declining,6.8,0.038375,2779,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",113.2
+page_0145,declining,6.816666666666666,0.041775,1390,improve,no strong signal — monitor,113.2
+page_0023,declining,6.808333333333334,0.039675,856,improve,"clicks trending up within observation window; content is 2+ years old, candidate for refresh",113.2
+page_0117,declining,6.908333333333334,0.04748333333333333,2176,improve,"content is 2+ years old, candidate for refresh",113.1
+page_0276,declining,6.866666666666667,0.013683333333333334,1529,improve,clicks trending down within observation window; CTR below typical range for its position,113.1
+page_0368,declining,6.875,0.021533333333333335,411,improve,clicks trending down within observation window,113.1
+page_0349,declining,6.875,0.050166666666666665,911,improve,"clicks trending up within observation window; content is 2+ years old, candidate for refresh",113.1
+page_0449,declining,6.933333333333334,0.0424,1489,improve,clicks trending down within observation window,113.1
+page_0420,declining,6.933333333333334,0.045649999999999996,1755,improve,no strong signal — monitor,113.1
+page_0305,declining,6.875,0.031875,467,improve,clicks trending up within observation window,113.1
+page_0041,declining,7.0,0.024566666666666667,1194,improve,"content is 2+ years old, candidate for refresh",113.0
+page_0057,declining,6.9750000000000005,0.056549999999999996,3159,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",113.0
+page_0074,declining,7.008333333333333,0.06258333333333334,849,improve,"clicks trending up within observation window; content is 2+ years old, candidate for refresh",113.0
+page_0172,declining,6.983333333333333,0.036575,1290,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",113.0
+page_0184,declining,7.016666666666667,0.012150000000000001,1626,improve,"CTR below typical range for its position; content is 2+ years old, candidate for refresh",113.0
+page_0413,declining,7.133333333333333,0.015683333333333334,3176,improve,"CTR below typical range for its position; content is 2+ years old, candidate for refresh",112.9
+page_0308,declining,7.066666666666666,0.02075,632,improve,clicks trending down within observation window,112.9
+page_0094,declining,7.083333333333333,0.014866666666666667,2897,improve,CTR below typical range for its position,112.9
+page_0149,declining,7.125,0.030091666666666666,3394,improve,"content is 2+ years old, candidate for refresh",112.9
+page_0331,declining,7.091666666666666,0.034041666666666665,3826,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",112.9
+page_0136,declining,7.208333333333333,0.038625,911,improve,"content is 2+ years old, candidate for refresh",112.8
+page_0292,declining,7.166666666666667,0.024491666666666665,1572,improve,clicks trending up within observation window,112.8
+page_0264,declining,7.175,0.04923333333333333,2430,improve,clicks trending up within observation window,112.8
+page_0159,declining,7.241666666666667,0.022641666666666668,1238,improve,no strong signal — monitor,112.8
+page_0378,declining,7.2250000000000005,0.057375,2988,improve,"clicks trending down within observation window; content is 2+ years old, candidate for refresh",112.8
+page_0415,declining,7.166666666666667,0.006983333333333334,2215,improve,"CTR below typical range for its position; content is 2+ years old, candidate for refresh",112.8

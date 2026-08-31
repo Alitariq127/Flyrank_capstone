@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refresh & Content Opportunity Scoring — FlyRank Search Intelligence Capstone</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --muted: #5c5c5c;
+    --accent: #2c5f8a;
+    --accent-soft: #eaf1f7;
+    --border: #e2e2e2;
+    --bg: #fdfdfb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Georgia, serif;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 64px 24px 120px; }
+  header.hero { margin-bottom: 48px; }
+  .kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 2.1rem;
+    line-height: 1.25;
+    margin: 0 0 18px;
+    font-weight: 700;
+  }
+  .abstract {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 20px 24px;
+    border-radius: 4px;
+    font-size: 0.98rem;
+    color: #333;
+  }
+  .abstract strong { color: var(--accent); }
+  h2 {
+    font-size: 1.3rem;
+    margin: 56px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1.05rem; margin: 28px 0 10px; }
+  p { color: #2a2a2a; font-size: 0.98rem; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  code, .mono {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    background: #f1f1ef;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 8px;
+    font-size: 0.88rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  tr:hover { background: #fafafa; }
+  .metric-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+  .metric-card {
+    flex: 1;
+    min-width: 130px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .metric-card .num { font-size: 1.6rem; font-weight: 700; color: var(--accent); }
+  .metric-card .label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 4px; }
+  figure { margin: 24px 0; text-align: center; }
+  figure img { max-width: 100%; border: 1px solid var(--border); border-radius: 6px; }
+  figcaption { font-size: 0.82rem; color: var(--muted); margin-top: 8px; }
+  ul, ol { padding-left: 22px; }
+  li { margin-bottom: 6px; font-size: 0.96rem; }
+  .callout {
+    background: #fff8ec;
+    border: 1px solid #f0dfb8;
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-size: 0.9rem;
+    margin: 18px 0;
+  }
+  .callout strong { color: #8a5a00; }
+  a { color: var(--accent); }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">FlyRank Search Intelligence Capstone · Refresh / Content Opportunity Scoring</div>
+    <h1>Which pages should a content team review this sprint, and why?</h1>
+    <div class="abstract">
+      <strong>Abstract.</strong> We ask which pages in a search-visibility warehouse are worth
+      a content team's attention this sprint. Using a strict time-split (12-week feature
+      window, held-out future label window, and a fully separate final test window), we
+      label pages as growing, declining, or stable based on click trend, engineer safe
+      on-page and behavioral features, and compare a gradient-boosted classifier against a
+      simple trend-slope baseline. The model reaches <strong>53.6% held-out accuracy</strong> versus
+      an estimated <strong>36.8% baseline</strong> on the validation split, driven mostly by better
+      identification of stable pages. We convert predictions into a ranked, reason-coded
+      action list — <strong>101 pages flagged</strong> for review out of 500 — rather than a bare
+      classification score.
+    </div>
+  </header>
+
+  <section>
+    <h2>Introduction</h2>
+    <p>
+      A content or SEO team can't manually review every page every sprint. The practical
+      decision this work supports is: <em>given limited review capacity, which pages should
+      be looked at first, and what should the review actually check for?</em> A page flagged
+      "declining, still ranks in the top 10, hasn't been refreshed in 2+ years" is a different
+      priority — and a different task — than one flagged "declining, ranks poorly, thin
+      content." The goal here is a ranked action list a team could plausibly work from, not
+      just a label.
+    </p>
+  </section>
+
+  <section>
+    <h2>Data</h2>
+    <p>
+      This paper works against the FlyRank ML Internship search-visibility warehouse schema —
+      one row per page per week, with clicks, impressions, click-through rate, average
+      ranking position, word count, content category, and days since publish. No client
+      names, domains, raw URLs, or private query strings are used or shown anywhere in this
+      analysis; all page identifiers here are anonymized indices.
+    </p>
+    <div class="callout">
+      <strong>Note on this version of the analysis:</strong> the pipeline below is built and
+      validated end-to-end against synthetic data generated to match the warehouse schema,
+      as a demonstration of the full method. The single swap-in point to run this on the real
+      warehouse is documented in the repo's <code>_lib.py</code> — replacing one data-loading
+      function with a DuckDB query over the real <code>hf://</code> release. No other part of
+      the pipeline changes.
+    </div>
+    <p>
+      Windows used: weeks 0–11 for features, weeks 12–15 as a held-out label window (used only
+      to compute training/validation labels — never touched for features), and weeks 16–19 as
+      a fully separate final test window, untouched until the last evaluation step.
+    </p>
+  </section>
+
+  <section>
+    <h2>Methodology</h2>
+    <h3>Label definition</h3>
+    <p>
+      Primary metric: <strong>clicks</strong>. Within the label window, we compare the early
+      half against the late half; a page is <code>growing</code> if late-window clicks exceed
+      early-window clicks by 15% or more, <code>declining</code> if the reverse, and
+      <code>stable</code> otherwise. The 15% threshold (rather than 0%) is a deliberate choice
+      to avoid mistaking week-to-week noise for a real trend.
+    </p>
+    <h3>Features</h3>
+    <p>
+      All computed strictly from the feature window: average clicks, impressions, CTR, and
+      position; click volatility (std. dev.); a within-window trend slope; word count;
+      content category (one-hot); and days since publish.
+    </p>
+    <h3>Baseline and model</h3>
+    <p>
+      Baseline: a simple rule — declining if trend slope is meaningfully negative, growing if
+      meaningfully positive, stable otherwise. No learning involved. Model: a gradient-boosted
+      tree classifier (scikit-learn <code>GradientBoostingClassifier</code>), trained on the
+      same features, evaluated on the same split.
+    </p>
+    <h3>Validation design</h3>
+    <p>
+      Split is <strong>group-aware</strong> (by page — no page appears in both train and
+      validation) and the label/feature windows are already time-separated, so no page's
+      future leaks into its own features. A leakage assertion runs at the top of the pipeline,
+      checking the three windows (feature / label / test) are pairwise disjoint before any
+      modeling begins.
+    </p>
+  </section>
+
+  <section>
+    <h2>Results</h2>
+    <div class="metric-row">
+      <div class="metric-card"><div class="num">53.6%</div><div class="label">Model — held-out test accuracy</div></div>
+      <div class="metric-card"><div class="num">54.4%</div><div class="label">Model — validation accuracy</div></div>
+      <div class="metric-card"><div class="num">36.8%</div><div class="label">Baseline — validation accuracy</div></div>
+      <div class="metric-card"><div class="num">101 / 500</div><div class="label">Pages flagged for review</div></div>
+    </div>
+
+    <p>Per-class performance on the held-out test window (500 pages):</p>
+    <table>
+      <tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr>
+      <tr><td>declining</td><td>0.39</td><td>0.29</td><td>0.33</td><td>107</td></tr>
+      <tr><td>growing</td><td>0.23</td><td>0.17</td><td>0.19</td><td>89</td></tr>
+      <tr><td>stable</td><td>0.63</td><td>0.73</td><td>0.67</td><td>304</td></tr>
+    </table>
+
+    <figure>
+      <img src="assets/confusion_matrix.png" alt="Confusion matrix of model predictions on validation set">
+      <figcaption>Fig. 1 — Model confusion matrix, validation split. Most of the model's edge over baseline comes from cleaner separation of stable pages; growing/declining recall is still weak.</figcaption>
+    </figure>
+
+    <figure>
+      <img src="assets/feature_importance.png" alt="Top 10 feature importances from the gradient boosted model">
+      <figcaption>Fig. 2 — Feature importances. Trend slope and average CTR dominate, which is expected given they're the features most directly tied to the label definition.</figcaption>
+    </figure>
+
+    <figure>
+      <img src="assets/summary_charts.png" alt="Predicted label distribution and recommended action counts">
+      <figcaption>Fig. 3 — Left: predicted label distribution on the test set. Right: recommended actions among flagged pages.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Limitations & honest framing</h2>
+    <ul>
+      <li><strong>Synthetic data.</strong> All numbers above are on synthetic data built to match the real schema, not the live FlyRank warehouse — treat these as a validated method, not validated findings, until re-run on real data.</li>
+      <li><strong>Directional, not causal.</strong> A "declining" label describes an observed click pattern in the label window, not a diagnosis of why — the reason codes point at correlated signals (position, CTR, content age), not confirmed causes.</li>
+      <li><strong>Growing/declining recall is weak (17–29%).</strong> The model is meaningfully better than baseline mostly by getting "stable" right more often; it's a decision-support signal for prioritizing review, not a high-confidence classifier for the minority classes that matter most.</li>
+      <li><strong>"Recovering" label not yet wired into this pass.</strong> The design calls for a "recovering" state (declining last period, growing now), which requires comparing two consecutive label windows. The current pipeline computes a single label window; recovering detection is defined in code (<code>_lib.mark_recovering</code>) but not yet exercised end-to-end — flagged here rather than silently dropped.</li>
+      <li><strong>15% threshold is a judgment call</strong>, not derived from the data's noise floor — worth revisiting once real variance is observed.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Ranked recommendations</h2>
+    <p>Top of the ranked action list (full 101-row table in the repo):</p>
+    <table>
+      <tr><th>Page</th><th>State</th><th>Avg. position</th><th>Action</th><th>Reason</th></tr>
+      <tr><td class="mono">page_0177</td><td>declining</td><td>5.4</td><td>improve</td><td>clicks trending down; content 2+ yrs old</td></tr>
+      <tr><td class="mono">page_0333</td><td>declining</td><td>5.5</td><td>improve</td><td>clicks trending down; content 2+ yrs old</td></tr>
+      <tr><td class="mono">page_0010</td><td>declining</td><td>5.6</td><td>improve</td><td>content 2+ yrs old, candidate for refresh</td></tr>
+      <tr><td class="mono">page_0080</td><td>declining</td><td>5.8</td><td>improve</td><td>content 2+ yrs old, candidate for refresh</td></tr>
+      <tr><td class="mono">page_0282</td><td>declining</td><td>5.8</td><td>improve</td><td>clicks trending down within window</td></tr>
+    </table>
+    <p class="muted">Priority is weighted toward declining pages that still rank reasonably well — the biggest opportunity-per-effort, since ranking work is mostly already done.</p>
+  </section>
+
+  <section>
+    <h2>Reproducibility</h2>
+    <p>Full pipeline, in order:</p>
+    <ol>
+      <li><code>work/01_data_exploration.ipynb</code> — schema and sanity checks</li>
+      <li><code>work/02_label_design.ipynb</code> — label definition notes</li>
+      <li><code>work/03_label_pipeline.ipynb</code> — label computation + leakage assertion</li>
+      <li><code>work/04_features_and_split.ipynb</code> — feature engineering + group split</li>
+      <li><code>work/05_modeling.ipynb</code> — baseline vs. model, confusion matrix, feature importance</li>
+      <li><code>work/06_reason_codes.ipynb</code> — reason-code generation</li>
+      <li><code>work/07_capstone_notebook.ipynb</code> — full pipeline, final test evaluation, ranked recommendations</li>
+    </ol>
+    <p>Shared logic (data loading, label/feature/reason-code functions) lives in <code>work/_lib.py</code>.</p>
+  </section>
+
+  <footer>
+    Built on the FlyRank ML Internship dataset — <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a>.
+  </footer>
+
+</div>
+</body>
+</html>
